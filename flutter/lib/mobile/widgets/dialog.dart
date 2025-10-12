@@ -197,7 +197,7 @@ void showServerSettingsWithValue(
 
     Widget buildField(
         String label, TextEditingController controller, String errorMsg,
-        {String? Function(String?)? validator, bool autofocus = false}) {
+        {String? Function(String?)? validator, bool autofocus = false, bool enabled = true, bool obscureText = false}) {
       if (isDesktop || isWeb) {
         return Row(
           children: [
@@ -216,6 +216,9 @@ void showServerSettingsWithValue(
                 ),
                 validator: validator,
                 autofocus: autofocus,
+                enabled: enabled,
+                obscureText: obscureText,
+                smartDashesType: SmartDashesType.disabled,
               ).workaroundFreezeLinuxMint(),
             ),
           ],
@@ -246,10 +249,12 @@ void showServerSettingsWithValue(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   buildField(translate('ID Server'), idCtrl, idServerMsg.value,
+                      enabled: false,
                       autofocus: true),
                   SizedBox(height: 8),
                   if (!isIOS && !isWeb) ...[
                     buildField(translate('Relay Server'), relayCtrl,
+                        enabled: false,
                         relayServerMsg.value),
                     SizedBox(height: 8),
                   ],
@@ -268,7 +273,7 @@ void showServerSettingsWithValue(
                     },
                   ),
                   SizedBox(height: 8),
-                  buildField('Key', keyCtrl, ''),
+                  buildField('Key', keyCtrl, '', obscureText: true),
                   if (isInProgress)
                     Padding(
                       padding: EdgeInsets.only(top: 8),
