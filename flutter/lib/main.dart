@@ -470,8 +470,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     }
     if(serverConfig?.idServer == null || serverConfig?.idServer.trim().isEmpty == true){
       await setServerConfig(null, null, ServerConfig(
-        idServer: "rust.bvxuyena.com.vn",
-        relayServer: "rust.bvxuyena.com.vn",
+        idServer: kIdServer,
+        relayServer: kRelayServer,
         key: "",
       ));
     }
@@ -481,6 +481,10 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     }
 
     // Show Dialog to input API key
+    showDialogRequestApiKey();
+  }
+
+  void showDialogRequestApiKey(){
     final keyCtrl = TextEditingController(text: "");
     var isInProgress = false;
 
@@ -496,17 +500,17 @@ class _AppState extends State<App> with WidgetsBindingObserver {
               SizedBox(width: 8),
               Expanded(
                 child: TextFormField(
-                  controller: controller,
-                  decoration: InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12))).workaroundFreezeLinuxMint(),
+                    controller: controller,
+                    decoration: InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12))).workaroundFreezeLinuxMint(),
               ),
             ],
           );
         }
 
         return TextFormField(
-          controller: controller,
-          decoration: InputDecoration(
-            labelText: label)).workaroundFreezeLinuxMint();
+            controller: controller,
+            decoration: InputDecoration(
+                labelText: label)).workaroundFreezeLinuxMint();
       }
 
       return CustomAlertDialog(
@@ -542,8 +546,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                 isInProgress = true;
               });
               bool result = await setServerConfig(null, null, ServerConfig(
-                idServer: "rust.bvxuyena.com.vn",
-                relayServer: "rust.bvxuyena.com.vn",
+                idServer: kIdServer,
+                relayServer: kRelayServer,
                 key: keyCtrl.text.trim(),
               ));
               setState(() {

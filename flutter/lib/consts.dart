@@ -4,6 +4,9 @@ import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
 
+const kIdServer = 'rust.bvxuyena.com.vn';
+const kRelayServer = 'rust.bvxuyena.com.vn';
+
 const int kMaxVirtualDisplayCount = 4;
 const int kAllVirtualDisplay = -1;
 
