@@ -452,7 +452,114 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       }
     };
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateOrientation());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateOrientation();
+      checkApiKeyRequired();
+    });
+
+  }
+
+  Future checkApiKeyRequired() async{
+    // Check if API key is required and not set
+    ServerConfig? serverConfig;
+    try {
+      Map<String, dynamic> options = jsonDecode(await bind.mainGetOptions());
+      serverConfig = ServerConfig.fromOptions(options);
+    } catch (e) {
+      print("Invalid server config: $e");
+    }
+    if(serverConfig?.idServer == null || serverConfig?.idServer.trim().isEmpty == true){
+      await setServerConfig(null, null, ServerConfig(
+        idServer: "rust.bvxuyena.com.vn",
+        relayServer: "rust.bvxuyena.com.vn",
+        key: "",
+      ));
+    }
+
+    if(serverConfig?.key != null && serverConfig?.key.trim().isNotEmpty == true){
+      return;
+    }
+
+    // Show Dialog to input API key
+    final keyCtrl = TextEditingController(text: "");
+    var isInProgress = false;
+
+    gFFI.dialogManager.show((setState, close, context) {
+      Widget buildField(String label, TextEditingController controller) {
+        if (isDesktop || isWeb) {
+          return Row(
+            children: [
+              SizedBox(
+                width: 120,
+                child: Text(label),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: TextFormField(
+                  controller: controller,
+                  decoration: InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12))).workaroundFreezeLinuxMint(),
+              ),
+            ],
+          );
+        }
+
+        return TextFormField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: label)).workaroundFreezeLinuxMint();
+      }
+
+      return CustomAlertDialog(
+        title: Row(
+          children: [
+            Expanded(child: Text(translate('API Key Required'))),
+          ],
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 500),
+          child: Form(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                buildField('Key', keyCtrl),
+                if (isInProgress)
+                  Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: LinearProgressIndicator(),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          dialogButton('Cancel', onPressed: () {
+            close();
+          }, isOutline: true),
+          dialogButton(
+            'OK',
+            onPressed: () async {
+              setState(() {
+                isInProgress = true;
+              });
+              bool result = await setServerConfig(null, null, ServerConfig(
+                idServer: "rust.bvxuyena.com.vn",
+                relayServer: "rust.bvxuyena.com.vn",
+                key: keyCtrl.text.trim(),
+              ));
+              setState(() {
+                isInProgress = false;
+              });
+              if (result) {
+                close();
+                showToast(translate('Successful'));
+              } else {
+                showToast(translate('Failed'));
+              }
+            },
+          ),
+        ],
+      );
+    });
   }
 
   @override

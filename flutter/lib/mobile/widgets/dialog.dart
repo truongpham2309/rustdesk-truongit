@@ -218,7 +218,6 @@ void showServerSettingsWithValue(
                 autofocus: autofocus,
                 enabled: enabled,
                 obscureText: obscureText,
-                smartDashesType: SmartDashesType.disabled,
               ).workaroundFreezeLinuxMint(),
             ),
           ],
@@ -232,6 +231,8 @@ void showServerSettingsWithValue(
           errorText: errorMsg.isEmpty ? null : errorMsg,
         ),
         validator: validator,
+        enabled: enabled,
+        obscureText: obscureText,
       ).workaroundFreezeLinuxMint();
     }
 
