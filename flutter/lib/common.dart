@@ -3439,6 +3439,17 @@ importConfig(List<TextEditingController>? controllers, List<RxString>? errMsgs,
   }
 }
 
+Future<ServerConfig?> getServerConfig() async{
+  ServerConfig? serverConfig;
+  try {
+    Map<String, dynamic> options = jsonDecode(await bind.mainGetOptions());
+    serverConfig = ServerConfig.fromOptions(options);
+  } catch (e) {
+    print("Invalid server config: $e");
+  }
+  return serverConfig;
+}
+
 Future<bool> setServerConfig(
   List<TextEditingController>? controllers,
   List<RxString>? errMsgs,

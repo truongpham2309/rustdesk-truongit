@@ -123,7 +123,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               });
             }
           },
-        ).marginOnly(bottom: 6, right: 6)
+        ).marginOnly(bottom: 6, right: 6),
       ]);
     }
     final textColor = Theme.of(context).textTheme.titleLarge?.color;
@@ -143,7 +143,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                     children: children,
                   ),
                 ),
-                Expanded(child: Container())
+                Expanded(child: Container()),
+                buildLicense(),
               ],
             ),
             if (isOutgoingOnly)
@@ -882,6 +883,31 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           })
         ],
       ),
+    );
+  }
+
+  Widget buildLicense(){
+    return FutureBuilder<ServerConfig?>(
+      future: getServerConfig(),
+      builder: (context, AsyncSnapshot<ServerConfig?> snapshot) {
+        if (snapshot.hasData && snapshot.data?.expiresAt.isNotEmpty == true) {
+          return Padding(
+            padding: const EdgeInsets.only(left: 12.0, bottom: 12.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Text("License: ${snapshot.data?.expiresAt}",
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                  fontSize: 14,
+                ),),
+              ],
+            ),
+          );
+        }
+        return SizedBox();
+      }
     );
   }
 }

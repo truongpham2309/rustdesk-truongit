@@ -148,13 +148,8 @@ void setTemporaryPasswordLengthDialog(
 }
 
 void showServerSettings(OverlayDialogManager dialogManager) async {
-  Map<String, dynamic> options = {};
-  try {
-    options = jsonDecode(await bind.mainGetOptions());
-  } catch (e) {
-    print("Invalid server config: $e");
-  }
-  showServerSettingsWithValue(ServerConfig.fromOptions(options), dialogManager);
+  ServerConfig? serverConfig = await getServerConfig();
+  showServerSettingsWithValue(serverConfig ?? ServerConfig(), dialogManager);
 }
 
 void showServerSettingsWithValue(
@@ -240,7 +235,7 @@ void showServerSettingsWithValue(
       title: Row(
         children: [
           Expanded(child: Text(translate('ID/Relay Server'))),
-          ...ServerConfigImportExportWidgets(controllers, errMsgs),
+          ...ServerConfigImportExportWidgets(),
         ],
       ),
       content: ConstrainedBox(
@@ -263,7 +258,7 @@ void showServerSettingsWithValue(
                     translate('API Server'),
                     apiCtrl,
                     apiServerMsg.value,
-                    enabled: false,
+                    enabled: true,
                     validator: (v) {
                       if (v != null && v.isNotEmpty) {
                         if (!(v.startsWith('http://') ||
@@ -275,7 +270,7 @@ void showServerSettingsWithValue(
                     },
                   ),
                   SizedBox(height: 8),
-                  buildField('Key', keyCtrl, '', obscureText: true),
+                  buildField('Key', keyCtrl, enabled: false, '', obscureText: true),
                   if (isInProgress)
                     Padding(
                       padding: EdgeInsets.only(top: 8),

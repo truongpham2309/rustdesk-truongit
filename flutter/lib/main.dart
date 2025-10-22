@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/widgets/overlay.dart';
@@ -29,7 +28,7 @@ import 'consts.dart';
 import 'mobile/pages/home_page.dart';
 import 'mobile/pages/server_page.dart';
 import 'models/platform_model.dart';
-import 'utils/http_service.dart' as http;
+import 'package:http/http.dart' as http;
 
 import 'package:flutter_hbb/plugin/handlers.dart'
     if (dart.library.html) 'package:flutter_hbb/web/plugin/handlers.dart';
@@ -463,14 +462,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
 
   Future checkApiKeyRequired() async{
     // Check if API key is required and not set
-    ServerConfig? serverConfig;
-    try {
-      Map<String, dynamic> options = jsonDecode(await bind.mainGetOptions());
-      serverConfig = ServerConfig.fromOptions(options);
-    } catch (e) {
-      print("Invalid server config: $e");
-    }
-
+    ServerConfig? serverConfig = await getServerConfig();
     // Set default idServer (run once only)
     if(serverConfig?.idServer == null || serverConfig?.idServer.trim().isEmpty == true){
       await setServerConfig(null, null, ServerConfig(
@@ -480,15 +472,10 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       ));
     }
 
-    if(serverConfig?.key.trim().isNotEmpty == true){
-     // TODO ping server
-     // update server config apiKey to null if failed to ping?
-    }
-
     // Check api key to show dialog
     if(serverConfig?.key == null || serverConfig?.key.trim().isEmpty == true){
       // Show Dialog to input API key
-      //showDialogRequestApiKey();
+      showDialogRequestApiKey();
     }
   }
 
@@ -594,13 +581,13 @@ class _AppState extends State<App> with WidgetsBindingObserver {
 
   Future<(bool, String?)> checkValidApiKey(String licenseKey, String hardwareId) async{
     try {
-      final api = "https://lic.truongit.net/api/check.php";
-      Map<String, String> headers = {
-        'license_key' : licenseKey,
-        'hardware_id' : hardwareId
-      };
-      headers['Content-Type'] = "application/json";
-      final resp = await http.post(Uri.parse(api), headers: headers);
+      final uri = Uri.parse('https://lic.truongit.net/api/check.php');
+      final req = http.MultipartRequest("POST", uri)
+        ..fields['license_key'] = licenseKey.trim()
+        ..fields['hardware_id'] = hardwareId.trim();
+      final streamed = await req.send();
+      final resp = await http.Response.fromStream(streamed);
+
       Map<String, dynamic> json = jsonDecode(decode_http_response(resp));
       String? status = json['status'];
       String? message = json['message'];
@@ -612,8 +599,9 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         Get.snackbar("Cảnh báo", message ?? "", colorText: Colors.amber);
       } else if(status == 'error'){
         Get.snackbar("Lỗi", message ?? "", colorText: Colors.red);
+      } else{
+        Get.snackbar("Status: $status", message ?? "", colorText: Colors.red);
       }
-      Get.snackbar("Status: $status", message ?? "", colorText: Colors.red);
     } catch (err) {
       showToast("Error: $err");
     }
