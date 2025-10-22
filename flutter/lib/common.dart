@@ -2804,13 +2804,17 @@ class ServerConfig {
   late String relayServer;
   late String apiServer;
   late String key;
+  late String hardwareId;
+  late String expiresAt;
 
   ServerConfig(
-      {String? idServer, String? relayServer, String? apiServer, String? key}) {
+      {String? idServer, String? relayServer, String? apiServer, String? key, String? hardwareId, String? expiresAt}) {
     this.idServer = idServer?.trim() ?? '';
     this.relayServer = relayServer?.trim() ?? '';
     this.apiServer = apiServer?.trim() ?? '';
     this.key = key?.trim() ?? '';
+    this.hardwareId = hardwareId?.trim() ?? '';
+    this.expiresAt = expiresAt?.trim() ?? '';
   }
 
   /// decode from shared string (from user shared or rustdesk-server generated)
@@ -2830,6 +2834,8 @@ class ServerConfig {
     relayServer = json['relay'] ?? '';
     apiServer = json['api'] ?? '';
     key = json['key'] ?? '';
+    hardwareId = json['hardwareId'] ?? '';
+    expiresAt = json['expiresAt'] ?? '';
   }
 
   /// encode to shared string
@@ -2840,6 +2846,8 @@ class ServerConfig {
     config['relay'] = relayServer.trim();
     config['api'] = apiServer.trim();
     config['key'] = key.trim();
+    config['hardwareId'] = hardwareId.trim();
+    config['expiresAt'] = expiresAt.trim();
     return base64UrlEncode(Uint8List.fromList(jsonEncode(config).codeUnits))
         .split('')
         .reversed
@@ -2851,7 +2859,9 @@ class ServerConfig {
       : idServer = options['custom-rendezvous-server'] ?? "",
         relayServer = options['relay-server'] ?? "",
         apiServer = options['api-server'] ?? "",
-        key = options['key'] ?? "";
+        key = options['key'] ?? "",
+        hardwareId = options['hardwareId'] ?? "",
+        expiresAt = options['expiresAt'] ?? "";
 }
 
 Widget dialogButton(String text,
@@ -3445,6 +3455,9 @@ Future<bool> setServerConfig(
   config.relayServer = removeEndSlash(config.relayServer.trim());
   config.apiServer = removeEndSlash(config.apiServer.trim());
   config.key = config.key.trim();
+  config.hardwareId = config.hardwareId.trim();
+  config.expiresAt = config.expiresAt.trim();
+
   if (controllers != null) {
     controllers[0].text = config.idServer;
     controllers[1].text = config.relayServer;
@@ -3484,6 +3497,9 @@ Future<bool> setServerConfig(
   await bind.mainSetOption(key: 'relay-server', value: config.relayServer);
   await bind.mainSetOption(key: 'api-server', value: config.apiServer);
   await bind.mainSetOption(key: 'key', value: config.key);
+  await bind.mainSetOption(key: 'hardwareId', value: config.hardwareId);
+  await bind.mainSetOption(key: 'expiresAt', value: config.expiresAt);
+
   final newApiServer = await bind.mainGetApiServer();
   if (oldApiServer.isNotEmpty &&
       oldApiServer != newApiServer &&

@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/widgets/overlay.dart';
@@ -28,6 +29,7 @@ import 'consts.dart';
 import 'mobile/pages/home_page.dart';
 import 'mobile/pages/server_page.dart';
 import 'models/platform_model.dart';
+import 'utils/http_service.dart' as http;
 
 import 'package:flutter_hbb/plugin/handlers.dart'
     if (dart.library.html) 'package:flutter_hbb/web/plugin/handlers.dart';
@@ -468,6 +470,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     } catch (e) {
       print("Invalid server config: $e");
     }
+
+    // Set default idServer (run once only)
     if(serverConfig?.idServer == null || serverConfig?.idServer.trim().isEmpty == true){
       await setServerConfig(null, null, ServerConfig(
         idServer: kIdServer,
@@ -476,12 +480,16 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       ));
     }
 
-    if(serverConfig?.key != null && serverConfig?.key.trim().isNotEmpty == true){
-      return;
+    if(serverConfig?.key.trim().isNotEmpty == true){
+     // TODO ping server
+     // update server config apiKey to null if failed to ping?
     }
 
-    // Show Dialog to input API key
-    showDialogRequestApiKey();
+    // Check api key to show dialog
+    if(serverConfig?.key == null || serverConfig?.key.trim().isEmpty == true){
+      // Show Dialog to input API key
+      //showDialogRequestApiKey();
+    }
   }
 
   void showDialogRequestApiKey(){
@@ -501,6 +509,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
               Expanded(
                 child: TextFormField(
                     controller: controller,
+                    onChanged: (value){
+                      setState(() {
+                        keyCtrl.text = value;
+                      });
+                    },
                     decoration: InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12))).workaroundFreezeLinuxMint(),
               ),
             ],
@@ -536,34 +549,75 @@ class _AppState extends State<App> with WidgetsBindingObserver {
           ),
         ),
         actions: [
-          dialogButton('Cancel', onPressed: () {
-            close();
-          }, isOutline: true),
+          // dialogButton('Cancel', onPressed: () {
+          //   close();
+          // }, isOutline: true),
           dialogButton(
             'OK',
-            onPressed: () async {
+            onPressed: keyCtrl.text.trim().isEmpty ? null : () async{
               setState(() {
                 isInProgress = true;
               });
-              bool result = await setServerConfig(null, null, ServerConfig(
-                idServer: kIdServer,
-                relayServer: kRelayServer,
-                key: keyCtrl.text.trim(),
-              ));
-              setState(() {
-                isInProgress = false;
-              });
-              if (result) {
-                close();
-                showToast(translate('Successful'));
-              } else {
-                showToast(translate('Failed'));
+              try{
+                String hardwareId = await platformFFI.getDeviceId();
+                // Check api key is valid
+                (bool isValid, String? expiresAt) values = await checkValidApiKey(keyCtrl.text.trim(), hardwareId);
+                if(values.$1){
+                  // Save config
+                  bool result = await setServerConfig(null, null, ServerConfig(
+                    idServer: kIdServer,
+                    relayServer: kRelayServer,
+                    key: keyCtrl.text.trim(),
+                    hardwareId: hardwareId,
+                    expiresAt: values.$2
+                  ));
+                  if (result) {
+                    close();
+                    showToast(translate('Successful'));
+                  } else {
+                    showToast(translate('Failed'));
+                  }
+                }
+              } catch(e){
+                showToast("Error: $e");
+              } finally {
+                setState(() {
+                  isInProgress = false;
+                });
               }
             },
           ),
         ],
       );
     });
+  }
+
+  Future<(bool, String?)> checkValidApiKey(String licenseKey, String hardwareId) async{
+    try {
+      final api = "https://lic.truongit.net/api/check.php";
+      Map<String, String> headers = {
+        'license_key' : licenseKey,
+        'hardware_id' : hardwareId
+      };
+      headers['Content-Type'] = "application/json";
+      final resp = await http.post(Uri.parse(api), headers: headers);
+      Map<String, dynamic> json = jsonDecode(decode_http_response(resp));
+      String? status = json['status'];
+      String? message = json['message'];
+      if(status == 'valid'){
+        String? expiresAt = json['expires_at'];
+        Get.snackbar("Thành công", message ?? "", colorText: Colors.green);
+        return (true, expiresAt);
+      } else if(status == 'invalid'){
+        Get.snackbar("Cảnh báo", message ?? "", colorText: Colors.amber);
+      } else if(status == 'error'){
+        Get.snackbar("Lỗi", message ?? "", colorText: Colors.red);
+      }
+      Get.snackbar("Status: $status", message ?? "", colorText: Colors.red);
+    } catch (err) {
+      showToast("Error: $err");
+    }
+    return (false, null);
   }
 
   @override

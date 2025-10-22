@@ -188,7 +188,7 @@ class PlatformFFI {
           windowsBuildNumber = getWindowsTargetBuildNumber();
           WindowsDeviceInfo winInfo = await deviceInfo.windowsInfo;
           name = winInfo.computerName;
-          id = winInfo.computerName;
+          id = winInfo.deviceId;
         } catch (e) {
           debugPrintStack(label: "get windows device info failed: $e");
           name = "unknown";
@@ -220,6 +220,35 @@ class PlatformFFI {
       debugPrintStack(label: 'initialize failed: $e');
     }
     version = await getVersion();
+  }
+
+  Future<String> getDeviceId() async{
+    String hardwareId = '';
+    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    if (isAndroid) {
+      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+      hardwareId = androidInfo.id.hashCode.toString();
+      androidVersion = androidInfo.version.sdkInt;
+    } else if (isIOS) {
+      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+      hardwareId = iosInfo.identifierForVendor.hashCode.toString();
+    } else if (isLinux) {
+      LinuxDeviceInfo linuxInfo = await deviceInfo.linuxInfo;
+      hardwareId = linuxInfo.machineId ?? linuxInfo.id;
+    } else if (isWindows) {
+      try {
+        // request windows build number to fix overflow on win7
+        windowsBuildNumber = getWindowsTargetBuildNumber();
+        WindowsDeviceInfo winInfo = await deviceInfo.windowsInfo;
+        hardwareId = winInfo.deviceId;
+      } catch (e) {
+        hardwareId = "";
+      }
+    } else if (isMacOS) {
+      MacOsDeviceInfo macOsInfo = await deviceInfo.macOsInfo;
+      hardwareId = macOsInfo.systemGUID ?? '';
+    }
+    return hardwareId;
   }
 
   Future<bool> tryHandle(Map<String, dynamic> evt) async {
