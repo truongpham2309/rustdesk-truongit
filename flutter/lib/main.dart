@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
+import 'package:intl/intl.dart';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
@@ -426,45 +426,6 @@ WindowOptions getHiddenTitleBarWindowOptions(
 class AppController extends GetxController {
   static AppController get to => Get.find<AppController>();
   RxString expiresAt = ''.obs;
-}
-
-class App extends StatefulWidget {
-  @override
-  State<App> createState() => _AppState();
-}
-
-class _AppState extends State<App> with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    Get.put(AppController());
-    WidgetsBinding.instance.window.onPlatformBrightnessChanged = () {
-      final userPreference = MyTheme.getThemeModePreference();
-      if (userPreference != ThemeMode.system) return;
-      WidgetsBinding.instance.handlePlatformBrightnessChanged();
-      final systemIsDark =
-          WidgetsBinding.instance.platformDispatcher.platformBrightness ==
-              Brightness.dark;
-      final ThemeMode to;
-      if (systemIsDark) {
-        to = ThemeMode.dark;
-      } else {
-        to = ThemeMode.light;
-      }
-      Get.changeThemeMode(to);
-      // Synchronize the window theme of the system.
-      updateSystemWindowTheme();
-      if (desktopType == DesktopType.main) {
-        bind.mainChangeTheme(dark: to.toShortString());
-      }
-    };
-    WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateOrientation();
-      checkApiKeyRequired();
-    });
-
-  }
 
   Future checkApiKeyRequired() async{
     // Check if API key is required and not set
@@ -474,15 +435,89 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       await setServerConfig(null, null, ServerConfig(
         idServer: kIdServer,
         relayServer: kRelayServer,
-        key: "",
       ));
     }
 
-    // Check api key to show dialog
     if(serverConfig?.key == null || serverConfig?.key.trim().isEmpty == true){
       // Show Dialog to input API key
       showDialogRequestApiKey();
+    } else if(serverConfig?.expiresAt != null){
+      // Check expiration
+      final expiresAtStr = serverConfig!.expiresAt;
+      DateTime now = DateTime.now();
+      try{
+        DateFormat format = DateFormat('dd/MM/yyyy');
+        DateTime expiresAt = format.parse(expiresAtStr);
+        if(now.isAfter(expiresAt)){
+          // Before showing expired dialog, call api again to double check the expiration
+          // in case the user has renewed the license or extended the expiration
+          (bool isValid, String? expiresAt) values = await checkApiKey(serverConfig.key, serverConfig.hardwareId);
+          // valid
+          if(values.$1 && values.$2?.isNotEmpty == true){
+            DateTime newExpiresAt = format.parse(values.$2!);
+            if(expiresAt != newExpiresAt){
+              // Update expiration
+              serverConfig.expiresAt = values.$2!;
+              setServerConfig(null, null, serverConfig);
+              if(now.isBefore(newExpiresAt)){
+                // Update new expiration
+                AppController.to.expiresAt.value = values.$2!;
+                return;
+              }
+            }
+          }
+          // Show Dialog expired
+          showDialogExpiredApiKey();
+        } else {
+          AppController.to.expiresAt.value = expiresAtStr;
+        }
+      } catch(e){
+        debugPrint("Error parsing expiresAt: $e");
+      }
     }
+  }
+
+  Future<(bool, String?)> checkApiKey(String licenseKey, String hardwareId) async{
+    try {
+      final uri = Uri.parse('https://lic.truongit.net/api/check.php');
+      final req = http.MultipartRequest("POST", uri)
+        ..fields['license_key'] = licenseKey.trim()
+        ..fields['hardware_id'] = hardwareId.trim();
+      final streamed = await req.send();
+      final resp = await http.Response.fromStream(streamed);
+
+      Map<String, dynamic> json = jsonDecode(decode_http_response(resp));
+      String? status = json['status'];
+      String? message = json['message'];
+      if(status == 'valid'){
+        String? expiresAt = json['expires_at'];
+        Get.snackbar("Thành công", message ?? "", colorText: Colors.green);
+        return (true, expiresAt);
+      } else if(status == 'invalid'){
+        Get.snackbar("Cảnh báo", message ?? "", colorText: Colors.amber);
+      } else if(status == 'error'){
+        Get.snackbar("Lỗi", message ?? "", colorText: Colors.red);
+      } else{
+        Get.snackbar("Status: $status", message ?? "", colorText: Colors.red);
+      }
+    } catch (err) {
+      showToast("Error: $err");
+    }
+    return (false, null);
+  }
+
+  void showDialogExpiredApiKey(){
+    gFFI.dialogManager.show((setState, close, context) {
+      return CustomAlertDialog(
+        title: null,
+        content: msgboxContent("info", "License Expired", "Api key is expired, please update to continue using the application."),
+        actions: [
+          dialogButton('Close', onPressed: (){
+            exit(0);
+          }),
+        ],
+      );
+    });
   }
 
   void showDialogRequestApiKey(){
@@ -554,15 +589,15 @@ class _AppState extends State<App> with WidgetsBindingObserver {
               try{
                 String hardwareId = await platformFFI.getDeviceId();
                 // Check api key is valid
-                (bool isValid, String? expiresAt) values = await checkValidApiKey(keyCtrl.text.trim(), hardwareId);
+                (bool isValid, String? expiresAt) values = await checkApiKey(keyCtrl.text.trim(), hardwareId);
                 if(values.$1){
                   // Save config
                   bool result = await setServerConfig(null, null, ServerConfig(
-                    idServer: kIdServer,
-                    relayServer: kRelayServer,
-                    key: keyCtrl.text.trim(),
-                    hardwareId: hardwareId,
-                    expiresAt: values.$2
+                      idServer: kIdServer,
+                      relayServer: kRelayServer,
+                      key: keyCtrl.text.trim(),
+                      hardwareId: hardwareId,
+                      expiresAt: values.$2
                   ));
                   if (result) {
                     AppController.to.expiresAt.value = values.$2 ?? '';
@@ -585,34 +620,44 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       );
     });
   }
+}
 
-  Future<(bool, String?)> checkValidApiKey(String licenseKey, String hardwareId) async{
-    try {
-      final uri = Uri.parse('https://lic.truongit.net/api/check.php');
-      final req = http.MultipartRequest("POST", uri)
-        ..fields['license_key'] = licenseKey.trim()
-        ..fields['hardware_id'] = hardwareId.trim();
-      final streamed = await req.send();
-      final resp = await http.Response.fromStream(streamed);
+class App extends StatefulWidget {
+  @override
+  State<App> createState() => _AppState();
+}
 
-      Map<String, dynamic> json = jsonDecode(decode_http_response(resp));
-      String? status = json['status'];
-      String? message = json['message'];
-      if(status == 'valid'){
-        String? expiresAt = json['expires_at'];
-        Get.snackbar("Thành công", message ?? "", colorText: Colors.green);
-        return (true, expiresAt);
-      } else if(status == 'invalid'){
-        Get.snackbar("Cảnh báo", message ?? "", colorText: Colors.amber);
-      } else if(status == 'error'){
-        Get.snackbar("Lỗi", message ?? "", colorText: Colors.red);
-      } else{
-        Get.snackbar("Status: $status", message ?? "", colorText: Colors.red);
+class _AppState extends State<App> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    final controller = AppController();
+    Get.put(controller);
+    WidgetsBinding.instance.window.onPlatformBrightnessChanged = () {
+      final userPreference = MyTheme.getThemeModePreference();
+      if (userPreference != ThemeMode.system) return;
+      WidgetsBinding.instance.handlePlatformBrightnessChanged();
+      final systemIsDark =
+          WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+              Brightness.dark;
+      final ThemeMode to;
+      if (systemIsDark) {
+        to = ThemeMode.dark;
+      } else {
+        to = ThemeMode.light;
       }
-    } catch (err) {
-      showToast("Error: $err");
-    }
-    return (false, null);
+      Get.changeThemeMode(to);
+      // Synchronize the window theme of the system.
+      updateSystemWindowTheme();
+      if (desktopType == DesktopType.main) {
+        bind.mainChangeTheme(dark: to.toShortString());
+      }
+    };
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateOrientation();
+      controller.checkApiKeyRequired();
+    });
   }
 
   @override
