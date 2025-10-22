@@ -258,7 +258,7 @@ void showServerSettingsWithValue(
                     translate('API Server'),
                     apiCtrl,
                     apiServerMsg.value,
-                    enabled: true,
+                    enabled: false,
                     validator: (v) {
                       if (v != null && v.isNotEmpty) {
                         if (!(v.startsWith('http://') ||

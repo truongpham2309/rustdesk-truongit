@@ -13,6 +13,7 @@ import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
+import 'package:flutter_hbb/main.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/server_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
@@ -887,27 +888,33 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   Widget buildLicense(){
-    return FutureBuilder<ServerConfig?>(
-      future: getServerConfig(),
-      builder: (context, AsyncSnapshot<ServerConfig?> snapshot) {
-        if (snapshot.hasData && snapshot.data?.expiresAt.isNotEmpty == true) {
-          return Padding(
-            padding: const EdgeInsets.only(left: 12.0, bottom: 12.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Text("License: ${snapshot.data?.expiresAt}",
-                  textAlign: TextAlign.left,
-                  style: TextStyle(
-                  fontSize: 14,
-                ),),
-              ],
-            ),
-          );
-        }
-        return SizedBox();
-      }
+    return Obx(
+      (){
+        var expiresAt = AppController.to.expiresAt.value;
+        return FutureBuilder<ServerConfig?>(
+            future: getServerConfig(),
+            builder: (context, AsyncSnapshot<ServerConfig?> snapshot) {
+              expiresAt = snapshot.data?.expiresAt ?? expiresAt;
+              if (snapshot.hasData && expiresAt.isNotEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.only(left: 12.0, bottom: 12.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text("License: $expiresAt",
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          fontSize: 14,
+                        ),),
+                    ],
+                  ),
+                );
+              }
+              return SizedBox();
+            }
+        );
+      },
     );
   }
 }

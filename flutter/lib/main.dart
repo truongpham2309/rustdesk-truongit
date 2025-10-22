@@ -423,6 +423,11 @@ WindowOptions getHiddenTitleBarWindowOptions(
   );
 }
 
+class AppController extends GetxController {
+  static AppController get to => Get.find<AppController>();
+  RxString expiresAt = ''.obs;
+}
+
 class App extends StatefulWidget {
   @override
   State<App> createState() => _AppState();
@@ -432,6 +437,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    Get.put(AppController());
     WidgetsBinding.instance.window.onPlatformBrightnessChanged = () {
       final userPreference = MyTheme.getThemeModePreference();
       if (userPreference != ThemeMode.system) return;
@@ -559,6 +565,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                     expiresAt: values.$2
                   ));
                   if (result) {
+                    AppController.to.expiresAt.value = values.$2 ?? '';
                     close();
                     showToast(translate('Successful'));
                   } else {
