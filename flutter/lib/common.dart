@@ -3439,6 +3439,16 @@ importConfig(List<TextEditingController>? controllers, List<RxString>? errMsgs,
   }
 }
 
+Future<void> resetServerConfig() async{
+  try {
+    await bind.mainSetOption(key: 'key', value: '');
+    await bind.mainSetOption(key: 'hardwareId', value: '');
+    await bind.mainSetOption(key: 'expiresAt', value: '');
+  } catch (e) {
+    print("Invalid server config: $e");
+  }
+}
+
 Future<ServerConfig?> getServerConfig() async{
   ServerConfig? serverConfig;
   try {
