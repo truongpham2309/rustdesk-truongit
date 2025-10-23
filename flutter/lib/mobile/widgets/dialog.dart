@@ -164,32 +164,7 @@ void showServerSettingsWithValue(
   RxString relayServerMsg = ''.obs;
   RxString apiServerMsg = ''.obs;
 
-  final controllers = [idCtrl, relayCtrl, apiCtrl, keyCtrl];
-  final errMsgs = [
-    idServerMsg,
-    relayServerMsg,
-    apiServerMsg,
-  ];
-
   dialogManager.show((setState, close, context) {
-    Future<bool> submit() async {
-      setState(() {
-        isInProgress = true;
-      });
-      bool ret = await setServerConfig(
-          null,
-          errMsgs,
-          ServerConfig(
-              idServer: idCtrl.text.trim(),
-              relayServer: relayCtrl.text.trim(),
-              apiServer: apiCtrl.text.trim(),
-              key: keyCtrl.text.trim()));
-      setState(() {
-        isInProgress = false;
-      });
-      return ret;
-    }
-
     Widget buildField(
         String label, TextEditingController controller, String errorMsg,
         {String? Function(String?)? validator, bool autofocus = false, bool enabled = true, bool obscureText = false}) {
@@ -284,17 +259,6 @@ void showServerSettingsWithValue(
         dialogButton('Cancel', onPressed: () {
           close();
         }, isOutline: true),
-        dialogButton(
-          'OK',
-          onPressed: () async {
-            if (await submit()) {
-              close();
-              showToast(translate('Successful'));
-            } else {
-              showToast(translate('Failed'));
-            }
-          },
-        ),
       ],
     );
   });
