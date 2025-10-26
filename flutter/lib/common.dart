@@ -2804,15 +2804,17 @@ class ServerConfig {
   late String relayServer;
   late String apiServer;
   late String key;
+  late String licenseKey;
   late String hardwareId;
   late String expiresAt;
 
   ServerConfig(
-      {String? idServer, String? relayServer, String? apiServer, String? key, String? hardwareId, String? expiresAt}) {
+      {String? idServer, String? relayServer, String? apiServer, String? key, String? licenseKey, String? hardwareId, String? expiresAt}) {
     this.idServer = idServer?.trim() ?? '';
     this.relayServer = relayServer?.trim() ?? '';
     this.apiServer = apiServer?.trim() ?? '';
     this.key = key?.trim() ?? '';
+    this.licenseKey = licenseKey?.trim() ?? '';
     this.hardwareId = hardwareId?.trim() ?? '';
     this.expiresAt = expiresAt?.trim() ?? '';
   }
@@ -2834,6 +2836,7 @@ class ServerConfig {
     relayServer = json['relay'] ?? '';
     apiServer = json['api'] ?? '';
     key = json['key'] ?? '';
+    licenseKey = json['licenseKey'] ?? '';
     hardwareId = json['hardwareId'] ?? '';
     expiresAt = json['expiresAt'] ?? '';
   }
@@ -2846,6 +2849,7 @@ class ServerConfig {
     config['relay'] = relayServer.trim();
     config['api'] = apiServer.trim();
     config['key'] = key.trim();
+    config['licenseKey'] = licenseKey.trim();
     config['hardwareId'] = hardwareId.trim();
     config['expiresAt'] = expiresAt.trim();
     return base64UrlEncode(Uint8List.fromList(jsonEncode(config).codeUnits))
@@ -2860,6 +2864,7 @@ class ServerConfig {
         relayServer = options['relay-server'] ?? "",
         apiServer = options['api-server'] ?? "",
         key = options['key'] ?? "",
+        licenseKey = options['licenseKey'] ?? "",
         hardwareId = options['hardwareId'] ?? "",
         expiresAt = options['expiresAt'] ?? "";
 }
@@ -3476,6 +3481,7 @@ Future<bool> setServerConfig(
   config.relayServer = removeEndSlash(config.relayServer.trim());
   config.apiServer = removeEndSlash(config.apiServer.trim());
   config.key = config.key.trim();
+  config.licenseKey = config.licenseKey.trim();
   config.hardwareId = config.hardwareId.trim();
   config.expiresAt = config.expiresAt.trim();
 

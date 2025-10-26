@@ -3,17 +3,21 @@ import 'dart:io';
 import 'package:dio/dio.dart' as d;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
-
 import 'common.dart';
-import 'consts.dart';
 import 'models/platform_model.dart';
 
 class AppController extends GetxController {
   static AppController get to => Get.find<AppController>();
   final ApiClient _apiClient = ApiClient();
   RxString expiresAt = ''.obs;
+
+
+  String get kIdServer => dotenv.env['ID_SERVER'] ?? '';
+  String get kRelayServer => dotenv.env['REPLAY_SERVER'] ?? '';
+  String get kApiServer => dotenv.env['API_SERVER'] ?? '';
+  String get kApiKey => dotenv.env['API_KEY'] ?? '';
 
   @override
   onInit() {
@@ -30,12 +34,14 @@ class AppController extends GetxController {
       serverConfig = ServerConfig(
         idServer: kIdServer,
         relayServer: kRelayServer,
+        apiServer: kApiServer,
+        key: kApiKey
       );
       await setServerConfig(null, null, serverConfig);
     }
 
-    if(serverConfig == null || serverConfig.key.trim().isEmpty == true){
-      // Show Dialog to input API key
+    if(serverConfig == null || serverConfig.licenseKey.trim().isEmpty == true){
+      // Show Dialog to input licenseKey
       showDialogRequestApiKey();
     } else {
       ApiResponse? apiResponse = await pingAuthentication(serverConfig);
@@ -49,7 +55,7 @@ class AppController extends GetxController {
   Future<ApiResponse?> pingAuthentication(ServerConfig serverConfig) async{
     try {
       final ApiResponse apiResponse = await _apiClient.check(
-        licenseKey: serverConfig.key,
+        licenseKey: serverConfig.licenseKey,
         hardwareId: serverConfig.hardwareId,
       );
       switch (apiResponse.status) {
@@ -152,7 +158,7 @@ class AppController extends GetxController {
       return CustomAlertDialog(
         title: Row(
           children: [
-            Expanded(child: Text(translate('API Key Required'))),
+            Expanded(child: Text(translate('License Key Required'))),
           ],
         ),
         content: ConstrainedBox(
@@ -190,7 +196,9 @@ class AppController extends GetxController {
                   bool result = await setServerConfig(null, null, ServerConfig(
                       idServer: kIdServer,
                       relayServer: kRelayServer,
-                      key: keyCtrl.text.trim(),
+                      apiServer: kApiServer,
+                      key: kApiKey,
+                      licenseKey: keyCtrl.text.trim(),
                       hardwareId: hardwareId,
                       expiresAt: values.$2
                   ));

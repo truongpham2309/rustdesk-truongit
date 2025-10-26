@@ -6,6 +6,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_hbb/common/widgets/overlay.dart';
 import 'package:flutter_hbb/desktop/pages/install_page.dart';
 import 'package:flutter_hbb/desktop/pages/server_page.dart';
@@ -129,6 +130,8 @@ Future<void> initEnv(String appType) async {
   _registerEventHandler();
   // Update the system theme.
   updateSystemWindowTheme();
+  // Load file .env
+  await dotenv.load(fileName: ".env");
 }
 
 void runMainApp(bool startService) async {
