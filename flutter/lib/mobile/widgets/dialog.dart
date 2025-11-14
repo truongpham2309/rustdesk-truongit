@@ -147,13 +147,16 @@ void setTemporaryPasswordLengthDialog(
   }, backDismiss: true, clickMaskDismiss: true);
 }
 
-void showServerSettings(OverlayDialogManager dialogManager) async {
+void showServerSettings(OverlayDialogManager dialogManager,
+    void Function(VoidCallback) setState) async {
   ServerConfig? serverConfig = await getServerConfig();
-  showServerSettingsWithValue(serverConfig ?? ServerConfig(), dialogManager);
+  showServerSettingsWithValue(serverConfig ?? ServerConfig(), dialogManager, setState);
 }
 
 void showServerSettingsWithValue(
-    ServerConfig serverConfig, OverlayDialogManager dialogManager) async {
+    ServerConfig serverConfig,
+    OverlayDialogManager dialogManager,
+    void Function(VoidCallback)? upSetState) async {
   var isInProgress = false;
   final idCtrl = TextEditingController(text: serverConfig.idServer);
   final relayCtrl = TextEditingController(text: serverConfig.relayServer);
