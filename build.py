@@ -445,12 +445,11 @@ def build_flutter_windows(version, features, skip_portable_pack):
     if skip_portable_pack:
         return
     os.chdir('libs/portable')
-    system2('pip3 install -r requirements.txt')
-    # Sử dụng 'python' thay vì 'pip3' và 'python3' để tương thích với Windows
-    python_exe = "python"
+    python_exe = sys.executable or "python"
     system2(f'{python_exe} -m pip install -r requirements.txt')
     system2(
         f'{python_exe} ./generate.py -f ../../{flutter_build_dir_2} -o . -e ../../{flutter_build_dir_2}/rustdesk.exe')
+
     os.chdir('../..')
     if os.path.exists('./rustdesk_portable.exe'):
         os.replace('./target/release/rustdesk-portable-packer.exe',
