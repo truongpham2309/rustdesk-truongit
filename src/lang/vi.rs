@@ -240,7 +240,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Unknown response", "Phản hồi không xác định"),
         ("License expired", "Giấy phép đã hết hạn"),
         ("The API key has expired. Please update to continue using the application.", "Key API đã hết hạn. Vui lòng cập nhật để tiếp tục sử dụng ứng dụng."),
-        ("License Key Required", "Yêu cầu Key Giấy phép"),
+        ("License Key Required", "Yêu cầu giấy phép"),
         ("Key", "Key"),
         ("Connection or server response error", "Lỗi kết nối hoặc phản hồi của máy chủ"),
         ("Unknown server error", "Lỗi máy chủ không xác định"),
