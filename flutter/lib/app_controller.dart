@@ -10,18 +10,21 @@ import 'models/platform_model.dart';
 
 class AppController extends GetxController {
   static AppController get to => Get.find<AppController>();
-  final ApiClient _apiClient = ApiClient();
+  late final ApiClient _apiClient;
   RxString expiresAt = ''.obs;
+  final _isInProgress = false.obs;
 
 
   String get kIdServer => dotenv.env['ID_SERVER'] ?? '';
   String get kRelayServer => dotenv.env['REPLAY_SERVER'] ?? '';
   String get kApiServer => dotenv.env['API_SERVER'] ?? '';
   String get kApiKey => dotenv.env['API_KEY'] ?? '';
+  String get kServerLic => dotenv.env['SERVER_LIC'] ?? '';
 
   @override
   onInit() {
     super.onInit();
+    _apiClient = ApiClient(baseUrl: kServerLic);
     checkApiKeyRequired();
   }
 
@@ -35,7 +38,7 @@ class AppController extends GetxController {
         idServer: kIdServer,
         relayServer: kRelayServer,
         apiServer: kApiServer,
-        key: kApiKey
+        key: ''
       );
       await setServerConfig(null, null, serverConfig);
     }
@@ -60,13 +63,13 @@ class AppController extends GetxController {
       );
       switch (apiResponse.status) {
         case 'invalid':
-          Get.snackbar("Cảnh báo", apiResponse.message ?? "License không hợp lệ.", colorText: Colors.amber);
+          Get.snackbar(translate("Warning"), apiResponse.message ?? translate("Invalid License."), colorText: Colors.amber, instantInit: true, snackPosition: SnackPosition.BOTTOM);
           break;
         case 'error':
-          Get.snackbar("Lỗi", apiResponse.message ?? "Có lỗi từ máy chủ.", colorText: Colors.red);
+          Get.snackbar(translate("Error"), apiResponse.message ?? translate("Server error"), colorText: Colors.red, instantInit: true, snackPosition: SnackPosition.BOTTOM);
           break;
         default:
-          Get.snackbar("Thông báo", apiResponse.message ?? "Phản hồi không xác định.", colorText: Colors.orange);
+          Get.snackbar(translate("Information"), apiResponse.message ?? translate("Unknown response"), colorText: Colors.orange, instantInit: true, snackPosition: SnackPosition.BOTTOM);
       }
       if(apiResponse.expiresAt?.trim().isNotEmpty == true){
         if(serverConfig.expiresAt != apiResponse.expiresAt){
@@ -77,7 +80,21 @@ class AppController extends GetxController {
       }
       return apiResponse;
     } catch (err) {
-      showToast("Error: $err");
+      if (err is Exception) {
+        Get.snackbar(
+          translate("Error"),
+          err.toString().replaceFirst('Exception: ', ''),
+          colorText: Colors.red,
+          snackPosition: SnackPosition.BOTTOM,
+          instantInit: true,
+        );
+      } else {
+        Get.snackbar(translate("Error"), "Error: $err",
+            colorText: Colors.red,
+            instantInit: true,
+            snackPosition: SnackPosition.BOTTOM
+        );
+      }
     }
     return null;
   }
@@ -90,19 +107,33 @@ class AppController extends GetxController {
       );
       switch (apiResponse.status) {
         case 'valid':
-          Get.snackbar("Thành công", apiResponse.message ?? "", colorText: Colors.green);
+          Get.snackbar(translate("Successful"), apiResponse.message ?? "", colorText: Colors.green, instantInit: true, snackPosition: SnackPosition.BOTTOM);
           return (true, apiResponse.expiresAt);
         case 'invalid':
-          Get.snackbar("Cảnh báo", apiResponse.message ?? "License không hợp lệ.", colorText: Colors.amber);
+          Get.snackbar(translate("Warning"), apiResponse.message ?? translate("Invalid License."), colorText: Colors.amber, instantInit: true, snackPosition: SnackPosition.BOTTOM);
           break;
         case 'error':
-          Get.snackbar("Lỗi", apiResponse.message ?? "Có lỗi từ máy chủ.", colorText: Colors.red);
+          Get.snackbar(translate("Error"), apiResponse.message ?? translate("Server error"), colorText: Colors.red, instantInit: true, snackPosition: SnackPosition.BOTTOM);
           break;
         default:
-          Get.snackbar("Thông báo", apiResponse.message ?? "Phản hồi không xác định.", colorText: Colors.orange);
+          Get.snackbar(translate("Information"), apiResponse.message ?? translate("Unknown response"), colorText: Colors.orange, instantInit: true, snackPosition: SnackPosition.BOTTOM);
       }
     } catch (err) {
-      showToast("Error: $err");
+      if (err is Exception) {
+        Get.snackbar(
+          translate("Error"),
+          err.toString().replaceFirst('Exception: ', ''),
+          colorText: Colors.red,
+          snackPosition: SnackPosition.BOTTOM,
+          instantInit: true,
+        );
+      } else {
+        Get.snackbar(translate("Error"), "Error: $err",
+            colorText: Colors.red,
+            instantInit: true,
+            snackPosition: SnackPosition.BOTTOM
+        );
+      }
     }
     return (false, null);
   }
@@ -110,10 +141,10 @@ class AppController extends GetxController {
   void showDialogExpiredApiKey(){
     gFFI.dialogManager.show((setState, close, context) {
       return CustomAlertDialog(
-        title: null,
-        content: msgboxContent("info", "License Expired", "Api key is expired, please update to continue using the application."),
+        title: Text(translate("License expired")),
+        content: Text(translate("The API key has expired. Please update to continue using the application.")),
         actions: [
-          dialogButton('Close', onPressed: (){
+          dialogButton(translate('Close'), onPressed: (){
             exit(0);
           }),
         ],
@@ -123,16 +154,15 @@ class AppController extends GetxController {
 
   void showDialogRequestApiKey(){
     final keyCtrl = TextEditingController(text: "");
-    var isInProgress = false;
 
     gFFI.dialogManager.show((setState, close, context) {
       Widget buildField(String label, TextEditingController controller) {
-        if (isDesktop || isWeb) {
+        if (isDesktop) {
           return Row(
             children: [
               SizedBox(
                 width: 120,
-                child: Text(label),
+                child: Text(translate(label)),
               ),
               SizedBox(width: 8),
               Expanded(
@@ -157,9 +187,7 @@ class AppController extends GetxController {
 
       return CustomAlertDialog(
         title: Row(
-          children: [
-            Expanded(child: Text(translate('License Key Required'))),
-          ],
+          children: [Expanded(child: Text(translate('License Key Required')))],
         ),
         content: ConstrainedBox(
           constraints: const BoxConstraints(minWidth: 500),
@@ -167,26 +195,28 @@ class AppController extends GetxController {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                buildField('Key', keyCtrl),
-                if (isInProgress)
-                  Padding(
-                    padding: EdgeInsets.only(top: 8),
-                    child: LinearProgressIndicator(),
-                  ),
+                Obx(() => Column(
+                      children: [
+                        buildField(translate('Key'), keyCtrl),
+                        if (_isInProgress.value)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: LinearProgressIndicator(),
+                          ),
+                      ],
+                    )),
               ],
             ),
           ),
         ),
         actions: [
-          // dialogButton('Cancel', onPressed: () {
-          //   close();
-          // }, isOutline: true),
+          dialogButton(translate('Cancel'), onPressed: () {
+            exit(0);
+          }, isOutline: true),
           dialogButton(
-            'OK',
-            onPressed: keyCtrl.text.trim().isEmpty ? null : () async{
-              setState(() {
-                isInProgress = true;
-              });
+            translate('OK'),
+            onPressed: (keyCtrl.text.trim().isEmpty || _isInProgress.value) ? null : () async{
+              _isInProgress.value = true;
               try{
                 String hardwareId = await platformFFI.getDeviceId();
                 // Check api key is valid
@@ -196,7 +226,7 @@ class AppController extends GetxController {
                   bool result = await setServerConfig(null, null, ServerConfig(
                       idServer: kIdServer,
                       relayServer: kRelayServer,
-                      apiServer: kApiServer,
+                      apiServer: '',
                       key: kApiKey,
                       licenseKey: keyCtrl.text.trim(),
                       hardwareId: hardwareId,
@@ -211,11 +241,25 @@ class AppController extends GetxController {
                   }
                 }
               } catch(e){
-                showToast("Error: $e");
+                if (e is Exception) {
+                  Get.snackbar(
+                    translate("Error"),
+                    e.toString().replaceFirst('Exception: ', ''),
+                    colorText: Colors.red,
+                    snackPosition: SnackPosition.BOTTOM,
+                    instantInit: true,
+                  );
+                } else {
+                  Get.snackbar(translate("Error"), "Error: $e",
+                      colorText: Colors.red,
+                      instantInit: true,
+                      snackPosition: SnackPosition.BOTTOM
+                  );
+                }
               } finally {
-                setState(() {
-                  isInProgress = false;
-                });
+                // Add a short delay to prevent rapid re-clicks
+                await Future.delayed(const Duration(seconds: 1));
+                _isInProgress.value = false;
               }
             },
           ),
@@ -227,11 +271,10 @@ class AppController extends GetxController {
 
 class ApiClient {
   late final Dio _dio;
-  static const String _baseUrl = 'https://lic.truongit.net/api';
 
-  ApiClient() {
+  ApiClient({required String baseUrl}) {
     final options = BaseOptions(
-      baseUrl: _baseUrl,
+      baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       headers: {
@@ -251,13 +294,13 @@ class ApiClient {
       final response = await _dio.post(path, data: formData);
       return ApiResponse.fromJson(Map<String, dynamic>.from(response.data));
     } on DioException catch (e) {
-      String errorMessage = "Lỗi kết nối hoặc máy chủ không phản hồi.";
+      String errorMessage = translate("Connection or server response error");
       if (e.response != null) {
-        errorMessage = "Lỗi máy chủ [${e.response?.statusCode}]: ${e.response?.data['message'] ?? 'Không có thông báo'}";
+        errorMessage = e.response?.data['message'] ?? translate('Unknown server error');
       }
       throw Exception(errorMessage);
     } catch (e) {
-      throw Exception("Đã xảy ra lỗi không xác định. Vui lòng thử lại.");
+      throw Exception(translate("An unknown error has occurred. Please try again"));
     }
   }
 

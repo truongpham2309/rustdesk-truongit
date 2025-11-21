@@ -132,6 +132,12 @@ Future<void> initEnv(String appType) async {
   updateSystemWindowTheme();
   // Load file .env
   await dotenv.load(fileName: ".env");
+   // Set default language to Vietnamese if no language is set
+  var lang = await bind.mainGetLocalOption(key: "lang");
+  if (lang.isEmpty) {
+    await bind.mainSetLocalOption(key: "lang", value: "vi");
+  }
+  //
 }
 
 void runMainApp(bool startService) async {
